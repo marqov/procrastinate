@@ -126,10 +126,14 @@ class Worker:
         # a stop, we can get details on the currently running task
         # in the logs.
         start_time = time.time()
-        log_context = self.log_context = job.get_context()
-        log_context["start_timestamp"] = time.time()
+        context = self.log_context = job.get_context()
+        context["start_timestamp"] = time.time()
 
-        logger.info("Starting job", extra={"action": "start_job", "job": log_context})
+        logger.info(
+            f"Starting job {context['call_string']}",
+            extra={"action": "start_job", "job": context},
+        )
+
         try:
             task_result = task(**job.task_kwargs)
             if asyncio.iscoroutine(task_result):
@@ -153,9 +157,9 @@ class Worker:
             log_level = logging.INFO
             exc_info = False
         finally:
-            end_time = log_context["end_timestamp"] = time.time()
-            log_context["duration_seconds"] = end_time - start_time
-            extra = {"action": log_action, "job": log_context, "result": task_result}
+            end_time = context["end_timestamp"] = time.time()
+            context["duration_seconds"] = end_time - start_time
+            extra = {"action": log_action, "job": context, "result": task_result}
             logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
     def stop(
